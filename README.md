@@ -3,7 +3,9 @@
 This project implements an end-to-end machine learning pipeline for Telco customer churn prediction using **Python** and **scikit-learn**.
 
 ## What it does
-- Loads the Telco churn dataset from OpenML
+- Loads the Telco churn dataset from:
+  - Local CSV (preferred), or
+  - OpenML fallback
 - Preprocesses data with:
   - One-hot encoding for categorical features
   - Standard scaling for numeric features
@@ -23,6 +25,11 @@ This project implements an end-to-end machine learning pipeline for Telco custom
 ```bash
 python -m pip install -r requirements.txt
 python pipeline.py
+```
+
+If your dataset is in a custom location:
+```bash
+python pipeline.py --data-path /absolute/path/to/WA_Fn-UseC_-Telco-Customer-Churn.csv
 ```
 
 After running, the best trained pipeline is saved to:

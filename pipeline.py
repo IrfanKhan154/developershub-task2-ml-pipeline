@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import argparse
+from pathlib import Path
+
 import joblib
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -15,10 +18,30 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
-def load_telco_churn_dataset() -> tuple[pd.DataFrame, pd.Series]:
-    """Load the Telco churn dataset from OpenML and return features and target."""
-    data = fetch_openml(name="Telco-Customer-Churn", version=1, as_frame=True)
-    df = data.frame.copy()
+def load_telco_churn_dataset(data_path: str | None = None) -> tuple[pd.DataFrame, pd.Series]:
+    """Load the Telco churn dataset and return features and target."""
+    # Prefer a local CSV when available to avoid network dependency.
+    candidate_paths = []
+    if data_path:
+        candidate_paths.append(Path(data_path))
+    candidate_paths.append(Path("WA_Fn-UseC_-Telco-Customer-Churn.csv"))
+
+    df = None
+    for path in candidate_paths:
+        if path.exists():
+            df = pd.read_csv(path)
+            break
+
+    # Fall back to OpenML if local dataset is not found.
+    if df is None:
+        try:
+            data = fetch_openml(name="Telco-Customer-Churn", version=1, as_frame=True)
+            df = data.frame.copy()
+        except Exception as exc:  # noqa: BLE001 - we want to surface any load failure clearly.
+            raise RuntimeError(
+                "Could not load Telco churn dataset. Provide a local CSV file "
+                "(e.g., WA_Fn-UseC_-Telco-Customer-Churn.csv) or run with network access."
+            ) from exc
 
     # Remove ID-like column if present because it has no predictive value.
     if "customerID" in df.columns:
@@ -61,9 +84,9 @@ def build_preprocessor(x: pd.DataFrame) -> ColumnTransformer:
     )
 
 
-def train_and_evaluate() -> None:
+def train_and_evaluate(data_path: str | None = None) -> None:
     """Train Logistic Regression and Random Forest with GridSearchCV, evaluate, and save best model."""
-    x, y = load_telco_churn_dataset()
+    x, y = load_telco_churn_dataset(data_path=data_path)
     x_train, x_test, y_train, y_test = train_test_split(
         x, y, test_size=0.2, random_state=42, stratify=y
     )
@@ -131,4 +154,12 @@ def train_and_evaluate() -> None:
 
 
 if __name__ == "__main__":
-    train_and_evaluate()
+    parser = argparse.ArgumentParser(description="Train and evaluate Telco churn ML pipeline.")
+    parser.add_argument(
+        "--data-path",
+        type=str,
+        default=None,
+        help="Optional local path to Telco churn CSV file.",
+    )
+    args = parser.parse_args()
+    train_and_evaluate(data_path=args.data_path)
