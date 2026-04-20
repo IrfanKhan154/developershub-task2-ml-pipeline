@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 
 import joblib
 import pandas as pd
@@ -37,7 +38,7 @@ def load_telco_churn_dataset(data_path: str | None = None) -> tuple[pd.DataFrame
         try:
             data = fetch_openml(name="Telco-Customer-Churn", version=1, as_frame=True)
             df = data.frame.copy()
-        except Exception as exc:  # noqa: BLE001 - we want to surface any load failure clearly.
+        except (URLError, HTTPError) as exc:
             raise RuntimeError(
                 "Could not load Telco churn dataset. Provide a local CSV file "
                 "(e.g., WA_Fn-UseC_-Telco-Customer-Churn.csv) or run with network access."
@@ -49,6 +50,8 @@ def load_telco_churn_dataset(data_path: str | None = None) -> tuple[pd.DataFrame
 
     # Separate target from features and normalize target labels to 0/1.
     y = df["Churn"].astype(str).str.strip().str.lower().map({"yes": 1, "no": 0})
+    if y.isna().any():
+        raise ValueError("Target column 'Churn' must contain only 'Yes'/'No' values.")
     x = df.drop(columns=["Churn"])
 
     # Convert known numeric-like columns that can be stored as strings.
@@ -142,7 +145,7 @@ def train_and_evaluate(data_path: str | None = None) -> None:
         print(f"{model_name} accuracy: {accuracy:.4f}")
         print(f"{model_name} best params: {grid_search.best_params_}")
 
-        if accuracy > best_accuracy:
+        if accuracy >= best_accuracy:
             best_accuracy = accuracy
             best_name = model_name
             best_estimator = grid_search.best_estimator_
