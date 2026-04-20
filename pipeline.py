@@ -145,7 +145,7 @@ def train_and_evaluate(data_path: str | None = None) -> None:
         print(f"{model_name} accuracy: {accuracy:.4f}")
         print(f"{model_name} best params: {grid_search.best_params_}")
 
-        if accuracy >= best_accuracy:
+        if accuracy > best_accuracy:
             best_accuracy = accuracy
             best_name = model_name
             best_estimator = grid_search.best_estimator_
