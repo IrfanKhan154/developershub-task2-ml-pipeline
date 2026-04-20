@@ -51,7 +51,10 @@ def load_telco_churn_dataset(data_path: str | None = None) -> tuple[pd.DataFrame
     # Separate target from features and normalize target labels to 0/1.
     y = df["Churn"].astype(str).str.strip().str.lower().map({"yes": 1, "no": 0})
     if y.isna().any():
-        raise ValueError("Target column 'Churn' must contain only 'Yes'/'No' values.")
+        raise ValueError(
+            "Target column 'Churn' contains unexpected values. "
+            "Expected only 'Yes'/'No' entries."
+        )
     x = df.drop(columns=["Churn"])
 
     # Convert known numeric-like columns that can be stored as strings.
